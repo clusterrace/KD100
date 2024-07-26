@@ -41,6 +41,10 @@ sudo ./KD100 [options]
 
 **-h**  Displays a help message
 
+**-p** Change the PID for the driver to use
+
+**-v** Change the VID for the driver to use
+
 Configuring
 ----------
 Edit or copy **default.cfg** to add your own keys/commands and use the **-c** flag to specify the location of the config file. New config files do not need to end in ".cfg". If the config file is not found in the current directory, the driver while look for it in ~/.config/KD100/
@@ -60,6 +64,16 @@ sudo udevadm trigger
 > **_NOTE:_**  Some systems might require you to run "sudo udevadm trigger" on boot 
 
 - Technically speaking, this can support other devices, especially if they send the same type of byte information, otherwise the code should be easy enough to edit and add support for other usb devices. If you want to see the information sent by different devices, change the vid and pid in the program and run it with the **-dry** flag
+
+Running The K20
+---------------
+The driver has been reported to work with the K20 through some work arounds [see Issue #10 for more details](https://github.com/mckset/KD100/issues/10). By running Huions driver first and then running the KD100 driver, Huions driver will tell the K20 to start and the KD100 driver will take over handling the inputs. Be sure to changed the PID to 0x0069 in the program heading before compiling or run 
+
+```
+KD100 -p 0069
+```
+
+> **_NOTE:_**  A lot of testing still needs to be done and I lack a K20 device so some issues may arise during use.
 
 Tested Distros
 --------------
