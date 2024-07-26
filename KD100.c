@@ -1,9 +1,10 @@
 /*
-	V1.4.2
+	V1.4.3
 	https://github.com/mckset/KD100.git
 	KD100 Linux driver for X11 desktops
 	Other devices can be supported by modifying the code to read data received by the device
 	At the moment, only the KD100 mini keydial is supported by this code officially
+ 	The K20 can function but requires some work arounds (see Issue #10)
 */
 
 #include <libusb-1.0/libusb.h>
@@ -33,8 +34,13 @@ void GetDevice(int, int, int);
 void Handler(char*, int);
 char* Substring(char*, int, int);
 
-const int vid = 0x256c;
-const int pid = 0x006d;
+int vid = 0x256c;
+int pid = 0x006d;
+
+const char hexMap[] = {
+	'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
+	'A', 'B', 'C', 'D', 'E', 'F'
+};
 
 void GetDevice(int debug, int accept, int dry){
 	int err=0, wheelFunction=0, button=-1, totalButtons=0, wheelType=0, leftWheels=0, rightWheels=0, totalWheels=0;
@@ -52,7 +58,7 @@ void GetDevice(int debug, int accept, int dry){
 	if (debug > 0){
 		if (debug > 2)
 			debug=2;
-		printf("Version 1.4.1\nDebug level: %d\n", debug);
+		printf("Version 1.4.3\nDebug level: %d\n", debug);
 	}		
 
 	// Load config file
@@ -161,6 +167,10 @@ void GetDevice(int debug, int accept, int dry){
 	free(data);
 	int devI = 0;
 	char indi[] = "|/-\\";
+
+	if (debug > 0)
+		printf("Vid: %04x Pid: %04x\n", vid, pid);
+
 	while (err == 0 || err == LIBUSB_ERROR_NO_DEVICE){
 		libusb_device **devs; // List of USB devices
 		libusb_device *dev; // Selected USB device
@@ -283,6 +293,7 @@ void GetDevice(int debug, int accept, int dry){
 			interfaces = desc->bNumInterfaces;
 			libusb_free_config_descriptor(desc);
 			libusb_set_auto_detach_kernel_driver(handle, 1);
+			libusb_reset_device(handle);
 			if (debug == 1)
 				printf("Claiming interfaces... \n");
 
@@ -469,35 +480,53 @@ char* Substring(char* in, int start, int end){
 	return out;
 }
 
+int HexToInt(char* c, int size){
+	int out = 0;
+	int shift = size*4 - 4;
+	for (int i = 0; i < size; i++){
+		if (c[i] > 70)
+			c[i] -= 32;
+		for (int h = 0; h < 16; h++)
+			if (hexMap[h] == c[i]){
+				out += h << shift;
+				shift -= 4;
+				break;
+			}
+	}
+	printf("%d\n", out);
+	return out;
+}
 
 int main(int args, char *in[]){
 	int debug=0, accept=0, dry=0, err;
 
 	err = system("xdotool sleep 0.01");
 	if (err != 0){
-		printf("Exitting...\n");
+		printf("xdotool missing. Exitting...\n");
 		return -9;
 	}
 
 	for (int arg = 1; arg < args; arg++){
 		if (strcmp(in[arg],"-h") == 0 || strcmp(in[arg],"--help") == 0){
 			printf("Usage: KD100 [option]...\n");
-			printf("\t-a\t\tAssume the first device that matches %04x:%04x is the Keydial\n", vid, pid);
+			printf("\t-a\t\tAssume the first device that matches %04x:%04x is the device to use\n", vid, pid);
 			printf("\t-c [path]\tSpecifies a config file to use\n");
 			printf("\t-d [-d]\t\tEnable debug outputs (use twice to view data sent by the device)\n");
 			printf("\t-dry \t\tDisplay data sent by the device without sending events\n");
 			printf("\t-h\t\tDisplays this message\n\n");
+			printf("\t-p\t\tChanged the PID (%04x by default)\n\n", pid);
+			printf("\t-v\t\tChanged the VID (%04x by default)\n\n", vid);
 			return 0;
 		}
-		if (strcmp(in[arg],"-d") == 0){
+		if (strcmp(in[arg],"-d") == 0)
 			debug++;
-		}
-		if (strcmp(in[arg],"-dry") == 0){
+		
+		if (strcmp(in[arg],"-dry") == 0)
 			dry=1;
-		}
-		if (strcmp(in[arg],"-a") == 0){
+		
+		if (strcmp(in[arg],"-a") == 0)
 			accept=1;
-		}
+		
 		if (strcmp(in[arg], "-c") == 0){
 			if (in[arg+1]){
 				file = in[arg+1];
@@ -506,6 +535,24 @@ int main(int args, char *in[]){
 			}else{
 				printf("No config file specified. Exiting...\n");
 				return -8;
+			}
+		}
+		if (strcmp(in[arg], "-p") == 0){
+			if (in[arg+1]){
+				pid = HexToInt(in[arg+1], strlen(in[arg+1]));
+				arg++;
+			}else{
+				printf("No PID specified. Exiting...\n");
+				return -7;
+			}
+		}
+		if (strcmp(in[arg], "-v") == 0){
+			if (in[arg+1]){
+				vid = HexToInt(in[arg+1], strlen(in[arg+1]));
+				arg++;
+			}else{
+				printf("No VID specified. Exiting...\n");
+				return -6;
 			}
 		}
 	}
