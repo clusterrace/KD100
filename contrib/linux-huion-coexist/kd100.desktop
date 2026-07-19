@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Huion KD100 Keydial Driver
+Comment=Userspace driver for the Huion KD100 (mckset/KD100, patched for the GT2401 256c:006d id collision); claims the keydial before Huion's huionCore
+Exec=/home/susverwimp/.local/bin/kd100-supervisor.sh
+Terminal=false
+X-GNOME-Autostart-enabled=false
+NoDisplay=true
+Hidden=true

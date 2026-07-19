@@ -1,6 +1,12 @@
 # Huion KD100 Linux Driver
 A simple driver for the Huion KD100 Mini Keydial written in C to give the device some usability while waiting for Huion to fix their Linux drivers. Each button can be configured to either act as a key/multiple keys or to execute a program/command
 
+> **Fork note (clusterrace):** this fork patches device selection so the KD100
+> can be used on a machine that *also* has a Huion **GT2401 pen display** — both
+> enumerate as USB `256c:006d`. See **[`HUION_GT2401_COEXIST.md`](HUION_GT2401_COEXIST.md)**
+> for the full story, the coexistence gotchas, and setup scripts in
+> [`contrib/linux-huion-coexist/`](contrib/linux-huion-coexist/).
+
 > **_NOTICE:_**  When updating from **v1.31** or below, make sure you updated your config file to follow the new format shown in the default config file
 
 Pre-Installation

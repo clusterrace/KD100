@@ -1,0 +1,5 @@
+# Huion KD100 keydial (USB port 1-13.4, shares 256c:006d with the GT2401 display).
+# Make the port's `authorized` flag user-writable so the login supervisor
+# (~/.local/bin/kd100-supervisor.sh) can hide the keydial from Huion during
+# startup, then bring it back for the mckset driver.
+ACTION=="add", SUBSYSTEM=="usb", KERNEL=="1-13.4", ATTR{idProduct}=="006d", RUN+="/bin/chmod 0666 /sys/bus/usb/devices/1-13.4/authorized"

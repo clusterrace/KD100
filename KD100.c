@@ -187,37 +187,33 @@ void GetDevice(int debug, int accept, int dry){
 				}
 			}else if (devDesc.idVendor == vid && devDesc.idProduct == pid){
 				if (accept == 1){
-					if (uid != 0){
-						err=libusb_open(dev, &handle);
-						if (err < 0){
-							printf("\nUnable to open device. Error: %d\n", err);
-							handle=NULL;
-							if (err == LIBUSB_ERROR_ACCESS){
-								printf("Error: Permission denied\n");
-								return;
-							}
+					// The GT2401 pen display shares vid:pid 256c:006d with the
+					// KD100, so we must always verify the product string (root or
+					// not) instead of grabbing the first vid:pid match.
+					err = libusb_open(dev, &handle);
+					if (err < 0){
+						printf("\nUnable to open device. Error: %d\n", err);
+						handle=NULL;
+						if (err == LIBUSB_ERROR_ACCESS){
+							printf("Error: Permission denied\n");
+							return;
 						}
-						if (debug > 0){
-							printf("\nUsing: %04x:%04x (Bus: %03d Device: %03d)\n", vid, pid, libusb_get_bus_number(dev), libusb_get_device_address(dev));
-						}
-						break;
-					}else{ // If the driver is ran as root, it can safely execute the following
-						err = libusb_open(dev, &handle);
-						if (err < 0){
-							printf("\nUnable to open device. Error: %d\n", err);
-							handle=NULL;
-						}
-						err = libusb_get_string_descriptor_ascii(handle, devDesc.iProduct, info, 200);
-						if (debug > 0){
-							printf("\n#%d | %04x:%04x : %s\n", d, vid, pid, info);
-						}
-						if (strlen(info) == 0 || strcmp("Huion Tablet_KD100", info) == 0){
-							break;
-						}else{
-							libusb_close(handle);
-							handle = NULL;
-							found++;
-						}
+						continue; // try the next device
+					}
+					err = libusb_get_string_descriptor_ascii(handle, devDesc.iProduct, info, 200);
+					if (debug > 0){
+						printf("\n#%d | %04x:%04x : %s (Bus: %03d Device: %03d)\n", d, vid, pid, info, libusb_get_bus_number(dev), libusb_get_device_address(dev));
+					}
+					// The GT2401 pen display reliably reports "Huion Tablet_GT2401";
+					// the KD100 reports either "Huion Tablet_KD100" or (on this
+					// unit) an EMPTY product string. Accept the empty/KD100 case
+					// and reject the pen display, so we never grab the display.
+					if (strlen((char*)info) == 0 || strcmp("Huion Tablet_KD100", (char*)info) == 0){
+						break; // Found the keydial
+					}else{
+						libusb_close(handle);
+						handle = NULL;
+						found++;
 					}
 				}else{
 					savedDevs[devI] = dev;
@@ -253,10 +249,12 @@ void GetDevice(int debug, int accept, int dry){
 					return;
 				}
 			}
-		}else if (found > 0){
-			printf("Error: Found device does not appear to be the keydial\n");
-			printf("Try running without the -a flag\n");
-			return;
+		}else if (handle == NULL && found > 0){
+			// Saw one or more 256c:006d devices (e.g. the GT2401 pen display)
+			// but none was the KD100. Keep waiting instead of bailing out,
+			// since the keydial may enumerate later.
+			if (debug > 0)
+				printf("\nFound %04x:%04x device(s) but none matched the KD100, waiting...\n", vid, pid);
 		}
 
 		int interfaces=0;
