@@ -10,9 +10,9 @@ display. Full background and gotchas: [`../../HUION_GT2401_COEXIST.md`](../../HU
 | File | Purpose |
 |------|---------|
 | `50-huion-kd100.rules` | udev: `MODE=0666` on `256c:006d` so the driver opens the keydial without root. **Required.** → `/etc/udev/rules.d/` |
-| `kd100-supervisor.sh` | Runs `KD100 -a` and restarts it if the (flaky) keydial drops. → `~/.local/bin/` |
-| `kd100-setup.sh` | On-demand: stop Huion+driver, **soft-unplug** the keydial (USB unbind, needs sudo), start Huion so it binds the display alone, start the driver, then soft-replug the keydial so the driver claims it. Run once per session. → `~/.local/bin/` |
-| `kd100.desktop` | Optional login autostart for the supervisor. Shipped **disabled** (`Hidden=true`) — the setup above is manual. → `~/.config/autostart/` |
+| `kd100-supervisor.sh` | Runs `KD100 -a -c ~/.config/KD100/blender.cfg` and restarts it if the (flaky) keydial drops. → `~/.local/bin/` |
+| `kd100.desktop` | Login autostart for the supervisor. Ships **enabled** (`X-GNOME-Autostart-enabled=true`). → `~/.config/autostart/` |
+| `kd100-setup.sh` | **Unreliable on the original hardware** — automates the sequence with a USB *soft-unplug* (`unbind`/`bind`, needs sudo) that did not behave like a real unplug here. Prefer autostart + a physical replug. → `~/.local/bin/` |
 | `51-huion-kd100-authorized.rules` | **Dead end, kept as a record.** Makes the port's `authorized` flag writable for a de-authorize "dance" that does **not** work (Huion still sees the keydial via libusb). Not needed. |
 
 The `kd100-supervisor.sh` here launches with `-c ~/.config/KD100/blender.cfg`
@@ -30,8 +30,12 @@ mkdir -p ~/.config/KD100 && cp ../../default.cfg ~/.config/KD100/
 
 ## With a Huion GT2401 pen display (coexistence)
 
+Autostart the driver, then replug the keydial by hand each session:
+
 ```sh
-cp kd100-supervisor.sh kd100-setup.sh ~/.local/bin/ && chmod +x ~/.local/bin/kd100-*.sh
-# edit the PORT / paths in the scripts to match your machine, then per session:
-~/.local/bin/kd100-setup.sh      # prompts for sudo (USB soft-unplug)
+cp kd100-supervisor.sh ~/.local/bin/ && chmod +x ~/.local/bin/kd100-supervisor.sh
+cp kd100.desktop ~/.config/autostart/       # ships enabled
 ```
+Then per boot: start with the keydial unplugged so Huion binds the pen display,
+and once it does, **plug the keydial in** — the waiting supervisor claims it.
+See [`../../HUION_GT2401_COEXIST.md`](../../HUION_GT2401_COEXIST.md) for details.

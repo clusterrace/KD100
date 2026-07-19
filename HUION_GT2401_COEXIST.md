@@ -216,14 +216,37 @@ descriptors, so Huion finds the keydial anyway (seen in `~/.huion.log` as
   ```
 
 ### The sequence that works
-1. Keydial **absent** (unplugged / unbound).
+1. Keydial **physically unplugged**.
 2. Start Huion → it binds the **pen display** alone.
-3. Bring the keydial **back**.
+3. **Plug the keydial back in.**
 4. This driver (already running and waiting) claims the keydial. Huion makes one
    failed open attempt and stays on the display.
 
-`contrib/linux-huion-coexist/kd100-setup.sh` automates that sequence with a USB
-soft-unplug (needs sudo). Run it once per session after login.
+> **Physical unplug/replug is the reliable method.** The USB soft-unplug
+> (`echo 1-13.4 > /sys/bus/usb/drivers/usb/unbind` / `bind`) was tested on this
+> hardware and did **not** reliably reproduce a real unplug, so
+> `contrib/linux-huion-coexist/kd100-setup.sh` (which uses it) is unreliable
+> here. Prefer the manual unplug/replug below.
+
+### Recommended setup: autostart the driver, replug by hand
+Run the keydial driver at login so it is always waiting, and just replug the
+keydial once Huion has the display:
+
+1. Install `kd100-supervisor.sh` to `~/.local/bin/` and the autostart entry:
+   ```sh
+   cp contrib/linux-huion-coexist/kd100-supervisor.sh ~/.local/bin/ && chmod +x ~/.local/bin/kd100-supervisor.sh
+   cp contrib/linux-huion-coexist/kd100.desktop ~/.config/autostart/
+   ```
+   The `.desktop` ships with `X-GNOME-Autostart-enabled=true`. To disable later,
+   set it to `false` (or add `Hidden=true`); to re-enable, set it back to `true`
+   and remove any `Hidden=true` line.
+2. **Boot with the keydial unplugged** (or unplug it if Huion fails to find the
+   display). Huion binds the pen display; the supervisor starts and waits.
+3. Once the display is recognised, **plug the keydial in** — the supervisor
+   claims it. Huion, already committed to the display, leaves it alone.
+
+The supervisor just runs `KD100 -a -c ~/.config/KD100/blender.cfg` in a restart
+loop (no USB "dance"); it also re-grabs the keydial after the flaky unit drops.
 
 ### What did NOT work
 - Starting this driver *before* Huion so it grabs the keydial first — Huion
