@@ -77,6 +77,33 @@ product string, root or not:
 Net effect: with `-a`, the driver deterministically claims the keydial and never
 grabs the GT2401, so it can run as a non-interactive login service.
 
+### Cold-device init (the keydial stays silent without it)
+
+Upstream mckset/KD100 only *reads* the interrupt endpoint (`0x81`); it never
+initializes the device. The KD100 boots in a **cold/quiet mode** and emits **no**
+button or dial reports on `0x81` until it receives a Huion mode-switch: a read of
+**USB string descriptor index 200 (`0xC8`)** — the same trick DIGImend /
+`hid-uclogic` use. `huionCore` does this read when it grabs the keydial.
+
+Symptom of the missing init: the keydial *appears* to work while Huion's driver
+is running (huionCore already woke it), then goes **completely dead** — buttons
+*and* dial — the moment `huionCore` isn't the one that initialized this power-on
+of the device (e.g. after a replug the userspace driver claimed, or with
+huionCore not running at all). Diagnosing it: poll all three IN endpoints and
+you'll see `0x81` produce nothing until the string-200 read is issued, after
+which every button (`08 e0 …`) and dial tick (`08 f1 …`) streams on `0x81`.
+
+This fork sends that init itself, right after claiming the interfaces and before
+the read loop:
+
+```c
+libusb_get_string_descriptor(handle, 0xC8, 0x0409, initBuf, sizeof(initBuf));
+```
+
+Net effect: the driver wakes the keydial on its own, so it works on a cold device
+with **no dependency on huionCore having initialized it first** — buttons and the
+dial report reliably after any (re)plug.
+
 ---
 
 ## Build & install (keydial driver)

@@ -291,6 +291,16 @@ void GetDevice(int debug, int accept, int dry){
 					printf("Failed to claim interface %d\n", x);
 			}
 
+			// Huion mode-switch init: reading string descriptor index 200
+			// (0xC8) flips the keydial out of its cold/quiet mode so it emits
+			// full button + dial reports on EP 0x81. Without this the device
+			// stays silent unless Huion's own driver (huionCore) already
+			// initialized it -- see HUION_GT2401_COEXIST.md.
+			unsigned char initBuf[256];
+			int initRet = libusb_get_string_descriptor(handle, 0xC8, 0x0409, initBuf, sizeof(initBuf));
+			if (debug == 1)
+				printf("Device init (string-desc 200): %d\n", initRet);
+
 			printf("Driver is running!\n");
 
 			err = 0;
