@@ -15,6 +15,9 @@ display. Full background and gotchas: [`../../HUION_GT2401_COEXIST.md`](../../HU
 | `kd100.desktop` | Optional login autostart for the supervisor. Shipped **disabled** (`Hidden=true`) — the setup above is manual. → `~/.config/autostart/` |
 | `51-huion-kd100-authorized.rules` | **Dead end, kept as a record.** Makes the port's `authorized` flag writable for a de-authorize "dance" that does **not** work (Huion still sees the keydial via libusb). Not needed. |
 
+The `kd100-supervisor.sh` here launches with `-c ~/.config/KD100/blender.cfg`
+(the [example Blender layout](../blender.cfg)); edit that line for your own config.
+
 ## Quick start (keydial only, no pen display)
 
 ```sh

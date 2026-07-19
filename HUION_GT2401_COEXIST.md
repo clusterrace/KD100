@@ -162,9 +162,19 @@ Reload after editing the config:
 killall KD100     # a running supervisor relaunches it with the new config
 ```
 
-`default.cfg` packet decoding (verified with `-dry`): buttons live in `data[4]`
-(0–7), `data[5]` (8–15), `data[6]` (16–18); the dial sends `data[1]==241` with
-`data[5]` = 1 (CW, code 641) / 2 (CCW, code 642).
+**Example config:** [`contrib/blender.cfg`](contrib/blender.cfg) is a
+ready-to-use layout for Blender modelling + sculpting (hold-modifiers for
+smooth/invert while stroking with the pen, dual-purpose keys that work in both
+Edit and Sculpt mode, zoom on the dial).
+
+**Calibrating your device's button numbers.** The physical position → button
+index map can differ per unit, so verify it rather than trusting the ASCII
+diagram. Run `KD100 -a -dry -d`, press each physical button in reading order,
+and decode the raw `DATA:` packets (`-dry` zeroes the `Keycode:` line, so read
+the packet bytes): buttons live in `data[4]` (indices 0–7), `data[5]` (8–15),
+`data[6]` (16–18) with `data[1]==224`; the dial sends `data[1]==241` with
+`data[5]` = 1 (CW) / 2 (CCW). On the machine this was built for, reading order
+mapped cleanly to indices 0–17, i.e. it matches the diagram.
 
 ---
 
