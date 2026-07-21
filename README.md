@@ -51,6 +51,10 @@ Configuring
 ----------
 Edit or copy **default.cfg** to add your own keys/commands and use the **-c** flag to specify the location of the config file. New config files do not need to end in ".cfg". If the config file is not found in the current directory, the driver while look for it in ~/.config/KD100/
 
+Each button is set with a `type:` and a `function:`. See **default.cfg** for the full list; in brief: `0` = key/combo, `1` = run a command, `2` = mouse button, and (**clusterrace fork**) `3` = sticky modifier — see Known Issues below.
+
+> **Config parser gotcha:** the file is parsed line-by-line and *any* line containing the capitalized word `Button N`, or the substrings `type:` / `function:`, is treated as a definition — **even inside a `//` comment**. Avoid those strings in comment text or they will hijack the button currently being defined.
+
 Caveats
 -------
 - Because the driver relies on xdotool, it only works on X11 desktops but it can be patched for wayland desktops by altering the "handler" function
@@ -77,4 +81,5 @@ Tested Distros
 Known Issues
 ------------
 - Setting shortcuts like "ctrl+c" will close the driver if it ran from a terminal and it's active
-- The driver cannot trigger keyboard shortcuts from combining multiple buttons on the device
+- **The keydial reports only one button at a time (hardware limit).** Holding one button and pressing a second does not produce a chord — the device drops the first button from its report the moment the second is pressed (verified by capturing raw USB packets). So a live two-button combo such as `Shift`+middle-click (Blender's pan) is impossible by physically holding two device buttons, and no change to the driver's packet decoding can recover it.
+  - **Workaround (clusterrace fork): sticky modifiers (`type: 3`).** A `type: 3` button latches its key down in software on the first tap and releases it on the next tap, so the modifier stays pressed while you hold a *different* button (or drag the pen) with the same hand. Example for Blender panning: set the Shift button to `type: 3`, tap it to latch Shift on, then hold a `type: 2` `mouse2` button and drag the pen — the app sees `Shift`+MMB. Tap Shift again to release. (A latched modifier stays active until tapped off, so it affects all input meanwhile.) See [`contrib/blender.cfg`](contrib/blender.cfg) for a working example.

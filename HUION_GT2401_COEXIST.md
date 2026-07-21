@@ -156,11 +156,12 @@ Config lives at `~/.config/KD100/default.cfg`. Each button is three lines:
 |  16   | 17| 15|     dial press = Button 18, plus dial rotation (Wheel section)
 ```
 
-| `type:` | Action        | `function:` examples                          |
-|---------|---------------|-----------------------------------------------|
-| `0`     | key / combo   | `a`, `space`, `ctrl+c`, `ctrl+shift+z`        |
-| `1`     | run a command | `krita`, `firefox`, `/path/to/script.sh`, `swap` |
-| `2`     | mouse button  | `mouse1`..`mouse5`                             |
+| `type:` | Action           | `function:` examples                          |
+|---------|------------------|-----------------------------------------------|
+| `0`     | key / combo      | `a`, `space`, `ctrl+c`, `ctrl+shift+z`        |
+| `1`     | run a command    | `krita`, `firefox`, `/path/to/script.sh`, `swap` |
+| `2`     | mouse button     | `mouse1`..`mouse5`                             |
+| `3`     | sticky modifier  | `shift`, `ctrl`, `alt` — tap to latch down, tap again to release |
 
 Mouse functions (type 2): `mouse1`=left, `mouse2`=middle, `mouse3`=right,
 `mouse4`=**scroll up**, `mouse5`=**scroll down**. Example — button 4 = left
@@ -178,6 +179,26 @@ function: mouse4
 Key names for type 0 are X keysyms (`space`, `Return`, `Prior`/`Next` for
 PageUp/Down, `bracketleft`, `KP_Add`, ...). Find any with `xev`.
 
+**One button at a time (hardware limit) & sticky modifiers (`type: 3`).** The
+keydial reports only a *single* button per USB packet — pressing a second button
+while holding a first makes the first vanish from the report (confirmed with
+`-dry`: e.g. holding `Escape` in `data[4]` then pressing the big button drops
+`data[4]` to 0 as `data[5]` lights up; two bytes are never non-zero together).
+So you **cannot** form a live chord like `Shift`+middle-click (Blender's pan) by
+physically holding two device buttons. The fork adds `type: 3`, a **sticky
+modifier**: the first tap latches the key down in software (edge-triggered, so
+the repeated packets sent while the button is held don't toggle it), the next tap
+releases it. To pan in Blender: set `Shift` to `type: 3`, tap to latch it on,
+then hold a `type: 2` `mouse2` button and drag the pen (`Shift`+MMB), then tap
+`Shift` again. A latched modifier stays down until tapped off, affecting all
+input meanwhile; `xdotool keyup shift ctrl alt` clears a stuck one.
+
+> **Config parser gotcha:** the file is parsed line-by-line and *any* line
+> containing the capitalized word `Button N`, or the substrings `type:` /
+> `function:`, is treated as a definition — **even inside a `//` comment**. Do
+> not reference e.g. `Button 15` or `type:` in comment text or it will hijack the
+> button currently being defined.
+
 **Dial rotation limitation:** the `Wheel` section (clockwise / counter-clockwise)
 can only send **keys** — the driver forces `xdotool key` for wheel events, so
 `mouse4`/`mouse5` scrolling does **not** work there. Making the dial scroll the
@@ -190,9 +211,10 @@ killall KD100     # a running supervisor relaunches it with the new config
 ```
 
 **Example config:** [`contrib/blender.cfg`](contrib/blender.cfg) is a
-ready-to-use layout for Blender modelling + sculpting (hold-modifiers for
-smooth/invert while stroking with the pen, dual-purpose keys that work in both
-Edit and Sculpt mode, zoom on the dial).
+ready-to-use layout for Blender modelling + sculpting: `Shift`/`Ctrl`/`Alt` are
+sticky modifiers (`type: 3`) so you can pan (sticky `Shift` + hold MMB + drag)
+and smooth/invert while stroking with the pen, dual-purpose keys that work in
+both Edit and Sculpt mode, and zoom on the dial.
 
 **Calibrating your device's button numbers.** The physical position → button
 index map can differ per unit, so verify it rather than trusting the ASCII

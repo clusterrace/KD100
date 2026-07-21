@@ -306,6 +306,8 @@ void GetDevice(int debug, int accept, int dry){
 			err = 0;
 			prevEvent.function = "";
 			prevEvent.type = 0;
+			int lastKeycode = 0;   // Previous packet's keycode, used for press-edge detection
+			int latched[19] = {0}; // Sticky-modifier (type 3) latch state, indexed by button
 			while (err >=0){ // Listen for events
 				unsigned char data[40]; // Stores device input
 				int keycode = 0; // Keycode read from the device
@@ -377,6 +379,27 @@ void GetDevice(int debug, int accept, int dry){
 										prevEvent.type=1;
 									}
 									Handler(events[k].function, 0);
+								}else if (events[k].type == 3){
+									// Sticky modifier: edge-triggered latch. This
+									// keydial can only report ONE button at a time,
+									// so a real chord (e.g. shift + middle-mouse to
+									// pan in Blender) is impossible by holding two
+									// buttons. Instead, tapping a type-3 button
+									// toggles its key held-down in software so the
+									// modifier stays pressed while you hold a normal
+									// button (or drag the pen) with the same hand.
+									// Act only on the press edge so the repeated
+									// packets sent while the button is held don't
+									// toggle it back off.
+									if (keycode != lastKeycode){
+										if (!latched[k]){
+											Handler(events[k].function, 0); // keydown
+											latched[k] = 1;
+										}else{
+											Handler(events[k].function, 1); // keyup
+											latched[k] = 0;
+										}
+									}
 								}else if (strcmp(events[k].function, "swap") == 0){
 									if (wheelFunction != totalWheels-1){
 										wheelFunction++;
@@ -410,6 +433,7 @@ void GetDevice(int debug, int accept, int dry){
 					}
 					printf("]\n");
 				}
+				lastKeycode = keycode; // Track for type-3 press-edge detection
 			}
 
 			// Cleanup
